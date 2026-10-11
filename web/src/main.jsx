@@ -41,7 +41,7 @@ function App() {
   });
   const decision = useMutation({
     mutationFn: (approved) =>
-      api("incidents/" + id + "/decision", { approved }, approver),
+      api("incidents/" + id + "/decision", { approved, planId: query.data.plan.id }, approver),
     onSuccess: () => query.refetch(),
   });
   const data = query.data;

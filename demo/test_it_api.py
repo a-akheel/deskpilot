@@ -5,7 +5,7 @@ class FixtureTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp=tempfile.TemporaryDirectory(); os.environ["IT_DB"]=cls.tmp.name+"/test.db"; os.environ["IT_API_TOKEN"]="test-token"
         spec=importlib.util.spec_from_file_location("fixture",Path(__file__).with_name("it_api.py")); module=importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
-        cls.server=module.HTTPServer(("127.0.0.1",0),module.Handler)
+        cls.server=module.ThreadingHTTPServer(("127.0.0.1",0),module.Handler)
         cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True); cls.thread.start()
         cls.base="http://127.0.0.1:"+str(cls.server.server_port)
     @classmethod
