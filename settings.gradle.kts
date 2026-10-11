@@ -1,1 +1,1 @@
-rootProject.name = "enterprise-it-operations-agent"
+rootProject.name = "deskpilot"

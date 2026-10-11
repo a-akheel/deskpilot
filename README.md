@@ -1,4 +1,4 @@
-# Enterprise IT Operations Agent
+# DeskPilot
 
 A runnable portfolio implementation of an IT support agent: **Kotlin + Temporal + Portkey + React/TanStack Query**. It retrieves service evidence, proposes remediation, and requires a separate approver before executing a scoped tool.
 
@@ -91,7 +91,7 @@ Workflow tests use Temporal's time-skipping test server, so approval expiry take
 
 Set `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY`, and `PORTKEY_MODEL` in your local environment. The planner calls Portkey's chat-completions endpoint with JSON output. Gateway latency and total token usage are returned in the plan. Do not commit real credentials. Provider billing is external; no inference-cost claims are made for the zero-cost demo.
 
-For configurable model comparisons, fault injection, and estimated inference costs, see the companion [Agent Evaluation Platform](https://github.com/a-akheel/agent-evaluation-platform).
+For configurable model comparisons, fault injection, and estimated inference costs, see the companion [FailureLab](https://github.com/a-akheel/failurelab).
 
 ## Design tradeoffs and next steps
 

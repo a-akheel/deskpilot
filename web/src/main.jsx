@@ -48,7 +48,7 @@ function App() {
   return (
     <>
       <header>
-        <b>◈ OPERATIONS / AGENT</b>
+        <b>◈ DESKPILOT</b>
         <span>Controlled execution workspace</span>
       </header>
       <main>
