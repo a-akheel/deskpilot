@@ -30,18 +30,35 @@ function App() {
   }
   const run = useMutation({
     mutationFn: () => api("incidents", { service, description }),
-    onSuccess: (d) => setId(d.id),
+    onSuccess: (d) => {
+      setId(d.id);
+      decision.reset();
+    },
   });
   const query = useQuery({
     queryKey: ["incident", id, token],
     queryFn: () => api("incidents/" + id),
     enabled: !!id,
-    refetchInterval: 2000,
+    refetchInterval: (q) =>
+      [
+        "completed",
+        "failed",
+        "escalated",
+        "rejected",
+        "expired",
+        "stale_approval",
+      ].includes(q.state.data?.status)
+        ? false
+        : 1000,
     retry: false,
   });
   const decision = useMutation({
     mutationFn: (approved) =>
-      api("incidents/" + id + "/decision", { approved, planId: query.data.plan.id }, approver),
+      api(
+        "incidents/" + id + "/decision",
+        { approved, planId: query.data.plan.id },
+        approver,
+      ),
     onSuccess: () => query.refetch(),
   });
   const data = query.data;
@@ -52,7 +69,7 @@ function App() {
         <span>Controlled execution workspace</span>
       </header>
       <main>
-        <div className="eyebrow">Enterprise IT operations</div>
+        <div className="eyebrow">IT support workflow assistant</div>
         <h1>Investigate. Review. Resolve.</h1>
         <p className="muted">
           Operational context, durable workflows, and an explicit human decision
@@ -75,6 +92,7 @@ function App() {
                 value={service}
                 onChange={(e) => setService(e.target.value)}
               >
+                <option value="">Not sure yet</option>
                 <option>vpn</option>
                 <option>email</option>
                 <option>helpdesk</option>
@@ -88,10 +106,10 @@ function App() {
               />
             </label>
             <button
-              disabled={!token || run.isPending}
+              disabled={!token || !description.trim() || run.isPending}
               onClick={() => run.mutate()}
             >
-              Start investigation →
+              {run.isPending ? "Starting…" : "Start investigation →"}
             </button>
             <p className="note">
               The bundled IT adapter simulates remediation. Live Portkey
@@ -103,6 +121,16 @@ function App() {
             <span className="badge">
               {data?.status || "Ready for a request"}
             </span>
+            {query.isPending && id && <p role="status">Loading workflow…</p>}
+            {data?.failure && (
+              <p className="error">Failure category: {data.failure}</p>
+            )}
+            {data?.status === "stale_approval" && (
+              <p className="note">
+                Service evidence changed or expired. Start a new investigation
+                before approving another action.
+              </p>
+            )}
             {id && <p className="muted">{id}</p>}
             {data?.plan && (
               <>

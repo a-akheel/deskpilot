@@ -1,106 +1,66 @@
 # DeskPilot
 
-A runnable portfolio implementation of an IT support agent: **Kotlin + Temporal + Portkey + React/TanStack Query**. It retrieves service evidence, proposes remediation, and requires a separate approver before executing a scoped tool.
+[![CI](https://github.com/a-akheel/deskpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/a-akheel/deskpilot/actions/workflows/ci.yml)
 
-## What you can demonstrate
+**An IT support workflow assistant that asks before it acts.**
 
-- Start a VPN investigation from the dashboard and inspect its evidence and execution timeline.
-- Approve or reject the proposed restart with a separate approver credential.
-- Observe one-hour approval expiry, bounded activity retries, and durable Temporal workflow history.
-- Retry a remediation request without duplicating its effect: the fixture API stores idempotency keys in SQLite.
-- Enable Portkey for model-generated proposals; leave it unset for a deterministic, zero-cost demo.
+DeskPilot investigates a selected service, proposes a restart, and waits for a separate approver. Before executing, it checks the service evidence again. The interesting part is what happens when an approval gets old, a worker restarts, or a response disappears after an action commits.
 
-**Scope:** This is a local reference implementation. The bundled IT API simulates service operations; it does not administer real infrastructure. Live gateway calls require your own credentials and were not used to produce the demo results.
+Kotlin · Temporal · React/TanStack Query · optional Portkey
 
-## Architecture
+![DeskPilot investigation and approval](docs/images/dashboard.jpg)
 
-```mermaid
-flowchart LR
- UI[React + TanStack Query] --> API[Kotlin authenticated API]
- API --> WF[Temporal workflow]
- WF --> READ[Read service context]
- READ --> IT[Authenticated IT fixture API]
- WF --> PLAN[Portkey or demo planner]
- PLAN --> APPROVAL[Wait for human approval]
- APPROVAL --> EXEC[Scoped restart activity]
- EXEC --> IT
- IT --> DB[(SQLite idempotency ledger)]
-```
+## Run the local demo
 
-Temporal owns workflow durability, retries, signals, and event history. Portkey is the optional model gateway. Model output is a proposal: it never receives credentials or executes tools. The executable service/action scope is fixed in code.
+Runs locally in demo mode without API keys. Connecting a live model is optional and requires your own credentials.
 
-## Local quick start
-
-Requirements: Java 21, Python 3.11+, Node 22+, pnpm 11, and the [Temporal CLI](https://docs.temporal.io/cli).
+Install Java 21, Python 3.11+, Node 22+, pnpm 11, and the [Temporal CLI](https://docs.temporal.io/cli). Then:
 
 ```sh
-cp .env.example .env
-# Replace the three demo tokens for your local session.
-set -a; . ./.env; set +a
+python3 scripts/dev.py
 ```
 
-Use separate terminals from the repository root:
+Open **http://127.0.0.1:5173**. The launcher prints temporary operator and approver tokens; enter them in the matching fields. Choose VPN, start an investigation, then approve or reject it. Ctrl-C stops the services. Runtime data and logs stay in ignored `.runtime/` files. Ports 7233, 8233, 8080, 8091, and 5173 must be free.
 
-```sh
-# 1. Development Temporal server (local only)
-temporal server start-dev --db-filename temporal.db
-```
+The launcher uses the free deterministic planner. The bundled IT API **simulates** service operations; it does not change real infrastructure. For individual services or live planning, see [setup](docs/SETUP.md).
 
-```sh
-# 2. Authenticated IT fixture API
-set -a; . ./.env; set +a
-python3 demo/it_api.py
-```
+## What is tested
 
-```sh
-# 3. Kotlin API and Temporal worker
-set -a; . ./.env; set +a
-./gradlew run
-```
+| Check | Evidence |
+|---|---|
+| Approval, rejection, expiry, wrong plan, duplicate decisions | Temporal workflow tests |
+| Changed or stale evidence prevents execution | Workflow tests and HTTP integration |
+| Three-attempt retry budget | Workflow tests and HTTP integration |
+| Lost response after commit does not duplicate a simulated action | Workflow tests and SQLite ledger checks |
+| A replacement process resumes the original approval | FailureLab process-restart test |
+| Recorded history replays deterministically | Temporal history replay test |
 
-```sh
-# 4. Dashboard
-cd web
-pnpm install --frozen-lockfile --ignore-scripts
-pnpm dev
-```
-
-Open http://localhost:5173, enter your operator token, and investigate `vpn`. The fixture reports VPN as degraded; email and helpdesk as healthy. Enter your approver token to approve or reject a restart. Tokens remain in React memory and are not stored in localStorage.
-
-## API
-
-| Endpoint | Credential | Behavior |
-|---|---|---|
-| `POST /api/incidents` | Operator | Starts a workflow from `{ "service": "vpn", "description": "VPN unavailable" }` |
-| `GET /api/incidents/{id}` | Operator | Returns status, plan, evidence, and audit timeline |
-| `POST /api/incidents/{id}/decision` | Approver | Signals `{ "approved": true }` or false |
-
-The API listens on loopback. Activity calls use a separate IT integration credential. Unrecognized services are rejected. A first accepted decision wins; repeated decisions cannot run another restart. Requests have size limits. Temporal's full workflow history records signals and activity outcomes; the dashboard shows a compact state timeline.
-
-## Tests
+The companion [FailureLab](https://github.com/a-akheel/failurelab) runs **16 HTTP cases plus an actual worker-process restart** against DeskPilot. Its [saved report](https://github.com/a-akheel/failurelab/blob/main/examples/deskpilot-report.json) contains workflow snapshots and action counts. These are deterministic integration results, not live-model benchmarks.
 
 ```sh
 ./gradlew test
 python3 -m unittest discover -s demo -p 'test_*.py' -v
-cd web && pnpm build
+cd web && pnpm install --frozen-lockfile --ignore-scripts && pnpm build
 ```
 
-Workflow tests use Temporal's time-skipping test server, so approval expiry takes seconds rather than an hour. See [validation notes](docs/VALIDATION.md) for tested behavior and limitations.
+## How it works
 
-## Optional live planning
+```mermaid
+flowchart LR
+ UI[Support dashboard] --> API[Kotlin API]
+ API --> W[Temporal workflow]
+ W --> C[Read service evidence]
+ C --> P[Propose a plan]
+ P --> H[Wait for plan-specific approval]
+ H --> R[Recheck freshness and revision]
+ R --> A[Scoped action with idempotency key]
+ A --> L[(Simulated action ledger)]
+```
 
-Set `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY`, and `PORTKEY_MODEL` in your local environment. The planner calls Portkey's chat-completions endpoint with JSON output. Gateway latency and total token usage are returned in the plan. Do not commit real credentials. Provider billing is external; no inference-cost claims are made for the zero-cost demo.
+See [design decisions](docs/DESIGN.md), [validation](docs/VALIDATION.md), and the [two-minute walkthrough](docs/WALKTHROUGH.md).
 
-For configurable model comparisons, fault injection, and estimated inference costs, see the companion [FailureLab](https://github.com/a-akheel/failurelab).
+## Boundaries
 
-## Design tradeoffs and next steps
-
-- Local shared role tokens demonstrate scope separation; production needs OIDC identities, per-resource authorization, TLS, and managed secrets.
-- SQLite atomically records simulated actions. A real downstream system must guarantee idempotency across the actual side effect and durable result; this fixture is not proof of distributed exactly-once execution.
-- Approval does not automatically revalidate service health after an hour. Production should bind approvals to a versioned plan and recheck evidence before execution.
-- Workflow failures become a visible `failed` state. Temporal history contains the underlying activity failures; no sensitive provider response is returned to the browser.
-- Prompt-injection resistance requires both model evaluations and enforced tool boundaries. Prompt wording alone is not a security guarantee.
-
-References: [Temporal Java SDK](https://docs.temporal.io/develop/java), [Temporal message passing](https://docs.temporal.io/encyclopedia/workflow-message-passing), [Portkey gateway](https://github.com/Portkey-AI/gateway).
+This is a local portfolio prototype. Role tokens demonstrate permission separation, not production identity management. Monitoring revisions are checked before execution, but a real adapter must also enforce its own atomic preconditions. The fixture's transaction covers its simulated effect; it does not establish exactly-once behavior for an external restart.
 
 MIT licensed.

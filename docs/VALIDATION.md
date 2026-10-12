@@ -1,7 +1,13 @@
-# Validation and evaluation boundaries
+# Validation
 
-The local build compiles the Kotlin application and runs Temporal workflow tests for approval, rejection, expiry, and escalation. The fixture tests validate authentication, scoped service lookup, missing idempotency keys, and repeated restart requests. Both frontends are production-built with Vite.
+Verified locally on October 11, 2026:
 
-The deterministic planner is a demonstration policy, not an LLM benchmark. Live Portkey credentials are deliberately not bundled. The companion evaluation project contains eight support scenarios including prompt injection, ambiguity, API timeout, malformed output, stale evidence, and authorization failure.
+- 10 Temporal workflow tests: approval, rejection, expiry, wrong plan, duplicate decisions, changed revision, stale evidence, exhausted retries, response lost after commit, and history replay.
+- Fixture HTTP tests for authentication, service scope, required idempotency keys, and repeated requests.
+- FailureLab's 16 HTTP integration scenarios all passed.
+- A separate actual JVM restart restored a pending plan and completed one action.
+- React production build.
 
-Before connecting real infrastructure, add organization identity, resource ownership checks, fresh evidence checks, signed/versioned approvals, persistent external audit export, and adapter-specific transactional idempotency tests.
+The first replacement-worker test inside Temporal's time-skipping environment hung waiting for a result. It was replaced with bounded result waits, a history replay test, and an actual process-restart integration check. This avoids treating a stalled test as evidence of recovery.
+
+The integration fixture injects HTTP 503/504 responses; it does not reproduce every TCP timeout or partial-write failure. Integration results use the deterministic planner and simulated IT services. No paid model calls or production systems were used.

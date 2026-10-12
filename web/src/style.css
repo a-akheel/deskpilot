@@ -171,4 +171,7 @@ tr:hover {
   }
 }
 
-.badge.fail { background: #482a32; color: #ffaaaa; }
+.badge.fail {
+  background: #482a32;
+  color: #ffaaaa;
+}
