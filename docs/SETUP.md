@@ -22,7 +22,9 @@ Optional environment settings: `PORT` (8080), `IT_PORT` (8091), `IT_API_URL`, an
 
 ## Live planning
 
-Use manual setup and set `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY`, and `PORTKEY_MODEL`. Calls incur provider charges. The gateway receives only the request and operational evidence; credentials remain in the adapter. Model output cannot bypass workflow approval, service scope, or evidence checks. No live benchmark is bundled.
+Use manual setup and set `PORTKEY_API_KEY`, `PORTKEY_VIRTUAL_KEY`, and `PORTKEY_MODEL`. Calls incur provider charges. The gateway receives only the request and operational evidence; credentials remain in the adapter. Model output cannot bypass workflow approval, service scope, or evidence checks. A four-case local planner probe is bundled; it is a boundary demonstration, not a model-quality benchmark.
+
+For direct local inference, run Ollama with `qwen3:4b`, set `LLM_PROVIDER=ollama` and `OLLAMA_MODEL=qwen3:4b`, then use manual setup. No Portkey key is needed. `./gradlew probeLocalModel` records four synthetic planner cases in `examples/local-planner-probe.json` without executing actions. Missing models, invalid output and provider errors fail explicitly rather than falling back to demo output. `scripts/dev.py` always forces the deterministic demo provider.
 
 ## Integration fixture controls
 
