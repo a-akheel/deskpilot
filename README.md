@@ -64,3 +64,11 @@ See [design decisions](docs/DESIGN.md), [validation](docs/VALIDATION.md), and th
 This is a local portfolio prototype. Role tokens demonstrate permission separation, not production identity management. Monitoring revisions are checked before execution, but a real adapter must also enforce its own atomic preconditions. The fixture's transaction covers its simulated effect; it does not establish exactly-once behavior for an external restart.
 
 MIT licensed.
+
+## Local LLM planner
+
+Set `LLM_PROVIDER=ollama` and optionally `OLLAMA_MODEL=qwen3:4b` when starting the worker directly (see docs/SETUP.md). Start Ollama on localhost and download the selected model first. The demo launcher intentionally remains deterministic. Local planning sends no Portkey key and incurs no provider API fee. It consumes local compute.
+
+The planner returns only a proposal. Temporal still enforces plan-specific approval, expiry, fresh evidence and scoped execution. Invalid JSON, unknown actions, blank reasons, truncated output and unavailable providers fail explicitly; there is no silent demo fallback. Provider timeouts fit within the existing 30-second activity deadline; slow/cold local models can fail and require investigation.
+
+`PlannerTest` exercises the adapter with an injected transport. These tests are not live-model benchmarks.

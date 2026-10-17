@@ -10,3 +10,9 @@ dependencies {
 kotlin { jvmToolchain(21) }
 application { mainClass.set("ops.MainKt") }
 tasks.test { useJUnitPlatform() }
+
+// Explicit task: never invoked by normal CI or `test`; calls a local model only.
+tasks.register<JavaExec>("probeLocalModel") {
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("ops.PlannerProbeKt")
+}

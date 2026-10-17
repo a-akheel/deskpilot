@@ -20,6 +20,7 @@ def main():
                 f"Install {command} and add it to PATH first. See README.md."
             )
     env = dict(os.environ)
+    env["LLM_PROVIDER"] = "demo"
     for key in ("OPERATOR_TOKEN", "APPROVER_TOKEN", "IT_API_TOKEN"):
         env.setdefault(key, secrets.token_urlsafe(20))
     # The launcher always runs the free demo. Live planning is an explicit manual setup.
